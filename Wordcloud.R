@@ -6,11 +6,11 @@ library(stringi)
 
 library(proxy)
 
+library(wordcloud)
+
 wiki = "http://en.wikipedia.org/wiki/"
 
-titles = c("Integral", "Riemann_integral", "Riemann-Stieltjes_integral", "Derivative",
-            "Limit_of_a_sequence", "Edvard_Munch", "Vincent_van_Gogh", "Jan_Matejko",
-            "Lev_Tolstoj", "Franz_Kafka", "J._R._R._Tolkien")
+titles = c("United_Kingdom_European_Union_membership_referendum,_2016")
 
 articles = character(length(titles))
 
@@ -42,4 +42,23 @@ docs = tm_map(docs, PlainTextDocument)
 
 substr(head(docs[[1]],1),1,1000)
 
-docsTDM = TermDocumentMatrix(docs)
+docsTDM = TermDocumentMatrix(docs,control = list(minWordLength = 1))
+
+inspect(docsTDM[100:110,1])
+
+# Frequent Terms and Associations
+
+findFreqTerms(docsTDM, lowfreq=100)
+
+# Wordcloud
+
+m = as.matrix(docsTDM)
+
+# calculate the frequency of words
+v = sort(rowSums(m), decreasing=TRUE)
+
+myNames = names(v)
+
+d = data.frame(word=myNames, freq=v)
+
+wordcloud(d$word, d$freq, min.freq=3)
