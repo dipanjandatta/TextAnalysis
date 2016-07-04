@@ -43,20 +43,4 @@ docs = tm_map(docs, PlainTextDocument)
 
 substr(head(docs[[1]],1),1,1000)
 
-docsTDM = DocumentTermMatrix(docs)
-
-inspect(docsTDM[100:105,6:11])
-
-docsdissim = dist(as.matrix(docsTDM), method = "cosine")
-
-docsdissim2 = as.matrix(docsdissim)
-
-rownames(docsdissim2) = titles
-
-colnames(docsdissim2) = titles
-
-docsdissim2
-
-h = hclust(docsdissim, method = "ward.D")
-
-plot(h, labels = titles, sub = "")
+docsTDM = TermDocumentMatrix(docs)
