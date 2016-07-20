@@ -2,6 +2,10 @@ rm(list=ls())
 
 library(pdftools)
 library(tm)
+library(ggplot2)
+library(wordcloud)   
+library(cluster)   
+library(fpc)   
 
 setwd("C:\\Users\\dipanjand\\Desktop\\ICRA\\ICRA Text Analytics")
 
@@ -87,5 +91,64 @@ tdm
 inspect(tdm[1:5, 1:20])
 
 # Explore your data
-# Organize terms by their frequency:
+# Check out the frequency of frequencies.
 
+freq = sort(colSums(as.matrix(dtm)), decreasing=TRUE)   
+head(freq, 14)   
+
+wf = data.frame(word=names(freq), freq=freq)  
+head(wf)
+
+# Plot Word Frequencies
+# Plot words that appear at least 150 times.
+
+p = ggplot(subset(wf, freq > 150), aes(word, freq))    
+
+p = p + geom_bar(stat="identity")  
+
+p = p + theme(axis.text.x=element_text(angle=45, hjust=1))   
+
+p   
+
+# Relationships Between Terms
+# Term Correlations
+
+# specifying a correlation limit of 0.98   
+
+data.frame(findAssocs(dtm,"cost", corlimit=0.6))
+
+data.frame(findAssocs(dtm,"coal", corlimit=0.6))
+
+# wordcloud
+set.seed(123)   
+dark2 = brewer.pal(6, "Dark2")   
+wordcloud(names(freq), freq, max.words=100, rot.per=0.2, colors=dark2)   
+
+dtms = removeSparseTerms(dtm, 0.5)
+dtms
+
+d = dist(t(dtms), method="euclidian")   
+
+fit = hclust(d=d, method="ward")   
+
+fit   
+
+plot.new()
+
+plot(fit, hang=-1)
+
+numclust = 6
+
+groups = cutree(fit, k=numclust)   
+# "k=" defines the number of clusters you are using   
+
+rect.hclust(fit, k=numclust, border="red") 
+# draw dendogram with red borders around the 6 clusters   
+
+# K-means clustering
+
+d = dist(t(dtms), method="euclidian")   
+
+kfit = kmeans(d, 2)
+
+clusplot(as.matrix(d), kfit$cluster, color=T, shade=T, labels=2, lines=0)   
