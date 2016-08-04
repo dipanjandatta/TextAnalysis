@@ -33,6 +33,8 @@ for(i in 1:length(pdfInput))
 
 MetaData = data.frame(FileName,No.of.pages,Author,created,modified)
 
+#View(MetaData)
+
 txt = NULL
 
 for(i in 1:length(pdfInput)){
@@ -52,19 +54,17 @@ WrdCntr = function(phrase){
         data.frame(phrase,WordCount)
 }
 
-DF = as.data.frame(t(data.frame(FileName,No.of.pages,
-                                WrdCntr("capacity addition"),
-                                WrdCntr("plant capacity"),
-                                WrdCntr("generation capacity"),
-                                WrdCntr("gas based")
-                                )
-                        )
-                )
-
-for(j in 3:nrow(DF)){
-        row.names(DF)[j] = as.character(DF[j-1,1])        
-}
-
-DF = DF[-seq(3,nrow(DF),by = 2),]
-
+# WrdLst = tolower(readLines("WordList.csv"))
+# 
+# DF = as.data.frame(t(data.frame(FileName,No.of.pages,lapply(WrdLst,WrdCntr))))
+# 
+# DF$Temp = is.character str(DF[,1]) 
+# 
+# for(j in 4:nrow(DF)){
+#         if(is.character(DF[j-1,1])){row.names(DF)[j] = as.character(DF[j-1,1])}
+# }
+# 
+# DF = DF[-seq(3,nrow(DF),by = 2),]
+# 
+# View(DF)
 
