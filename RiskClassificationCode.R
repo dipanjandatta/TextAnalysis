@@ -1,66 +1,78 @@
+#Clear the memory file
 rm(list=ls())
 
-setwd("C:\\Users\\dipanjand\\Desktop\\Imacs")
+Riskyname = "Amtek"
+NonRiskyName = "Bosch"
+Industry = "AutoParts"
 
-Amtekfilelist = list.files(pattern = "Amtek.*.txt")
-Boschfilelist = list.files(pattern = "Bosch.*.txt")
+#Set working directory
+setwd(paste("C:\\Users\\dipanjand\\Desktop\\Imacs\\",Industry,sep = ""))
+
+
+# Get a list of files 
+Riskyfilelist = list.files(pattern = paste(Riskyname,".*.txt",sep = ""))
+NonRiskyfilelist = list.files(pattern = paste(NonRiskyName,".*.txt",sep = ""))
 Testfilelist = list.files(pattern = ".*.txt")
 
-articles = character(10)
+## Read data
+# For Risky Auto
 
-Amtek = character(10)
+Risky = character(length(Riskyfilelist))
 
-for (i in 1:10) {
-        Amtek[i] = paste(readLines(Amtekfilelist[i]), collapse=" ")
+for (i in 1:length(Riskyfilelist)) {
+        Risky[i] = paste(readLines(Riskyfilelist[i]), collapse=" ")
 }
 
-Bosch = character(10)
+# For NonRisky
+NonRisky = character(length(NonRiskyfilelist))
 
-for (i in 1:10) {
-
-        Bosch[i] = paste(readLines(Boschfilelist[i]), collapse=" ")
+for (i in 1:length(NonRiskyfilelist)) {
+        NonRisky[i] = paste(readLines(NonRiskyfilelist[i]), collapse=" ")
 }
 
-Test = character(20)
+# For testing, both Risky and NonRisky
+Test = character(length(Testfilelist))
 
-for (i in 1:20) {
-        
+for (i in 1:length(Testfilelist)) {
         Test[i] = paste(readLines(Testfilelist[i]), collapse=" ")
 }
 
-# Helper Function
-
-replacePunctuation = function(x)
-        {
-                x = tolower(x)
-                x = gsub("[.]+[ ]"," ",x)
-                x = gsub("[:]+[ ]"," ",x)
-                x = gsub("[?]"," ",x)
-                x = gsub("[!]"," ",x)
-                x = gsub("[;]"," ",x)
-                x = gsub("[,]"," ",x)
-                x = gsub("[)]"," ",x)
-                x = gsub("[(]"," ",x)
-                x
-}
-
-Amtek = replacePunctuation(Amtek)
-Bosch = replacePunctuation(Bosch)
-Test = replacePunctuation(Test)
+# Load required packages
 
 library(tm)
 
-Amtek.corpus = Corpus(VectorSource(as.vector(Amtek)))
-Bosch.corpus = Corpus(VectorSource(as.vector(Bosch)))
-Test.corpus = Corpus(VectorSource(as.vector(Test)))
+DocumentCleaning = function(docVector){
+        
+        # Inputs doc vector, output cleaned corpus
+        docs = Corpus(VectorSource(docVector))
+        
+        docs = tm_map(docs, stripWhitespace)
+        
+        docs = tm_map(docs, removeWords, stopwords("english"))
+        
+        docs = tm_map(docs, removePunctuation)
+        
+        docs = tm_map(docs, removeNumbers)
+        
+        docs = tm_map(docs, tolower)
+        
+        docs = tm_map(docs, PlainTextDocument)
+        
+        docs
+                
+}
 
-Amtek.matrix = t(TermDocumentMatrix(Amtek.corpus,
-                                        control = list(wordLengths=c(4,Inf))))
-Bosch.matrix = t(TermDocumentMatrix(Bosch.corpus,
-                                        control = list(wordLengths=c(4,Inf))))
+Risky.corpus = DocumentCleaning(Risky)
+NonRisky.corpus = DocumentCleaning(NonRisky)
+Test.corpus = DocumentCleaning(Test)
+
+Risky.matrix = t(TermDocumentMatrix(Risky.corpus,
+                                    control = list(wordLengths=c(4,Inf))))
+NonRisky.matrix = t(TermDocumentMatrix(NonRisky.corpus,
+                                    control = list(wordLengths=c(4,Inf))))
 
 Test.matrix = t(TermDocumentMatrix(Test.corpus,
-                                    control = list(wordLengths=c(4,Inf))))
+                                   control = list(wordLengths=c(4,Inf))))
 
 probabilityMatrix <-function(docMatrix)
 {
@@ -77,8 +89,8 @@ probabilityMatrix <-function(docMatrix)
         termSums
 }
 
-Amtek.pMatrix = probabilityMatrix(Amtek.matrix)
-Bosch.pMatrix = probabilityMatrix(Bosch.matrix)
+Risky.pMatrix = probabilityMatrix(Risky.matrix)
+NonRisky.pMatrix = probabilityMatrix(NonRisky.matrix)
 
 getProbability <- function(testChars,probabilityMatrix)
 {
@@ -99,39 +111,27 @@ Test.matrix = as.matrix(Test.matrix)
 # A holder for classification 
 classified = NULL
 
-AmtekScore = NULL
+RiskyScore = NULL
 
-BoschScore = NULL
+NonRiskyScore = NULL
 
 for(j in 1:nrow(Test.matrix))
 {
         # Extract the test words
         Test.chars = names(Test.matrix[j,Test.matrix[j,] %in% 1])
         # Get the probabilities
-        AmtekScore[j] = getProbability(Test.chars,Amtek.pMatrix)
-        BoschScore[j] = getProbability(Test.chars,Bosch.pMatrix)
+        RiskyScore[j] = getProbability(Test.chars,Risky.pMatrix)
+        NonRiskyScore[j] = getProbability(Test.chars,NonRisky.pMatrix)
         # Add it to the classification list
         classified = c(classified,
-                       ifelse(AmtekScore[j]>BoschScore[j],"Risky","Non-Risky"))
+                       ifelse(RiskyScore[j]>NonRiskyScore[j],"Risky","Non-Risky"))
 }
 
-Final_Out = data.frame(Test,classified,"Risk_Score"= AmtekScore,"Safe_Score"= BoschScore)
+Final_Out = data.frame(Test,classified,
+                       "Risk_Score"= round(10-log(-RiskyScore),2),
+                       "Safe_Score"= round(10-log(-NonRiskyScore),2)
+)
+
+View(Final_Out)
 
 
-Wordcloud.Fun = function(docsTDM){
-        library(wordcloud)
-        m = as.matrix(docsTDM)
-        
-        # calculate the frequency of words
-        v = sort(rowSums(m), decreasing=TRUE)
-        
-        myNames = names(v)
-        
-        d = data.frame(word=myNames, freq=v)
-        
-        wordcloud(d$word, d$freq, min.freq=9)        
-}
-
-Wordcloud.Fun(Amtek.matrix)
-
-docsTDM = t(Amtek.matrix)
